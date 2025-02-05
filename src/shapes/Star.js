@@ -8,7 +8,7 @@ export class Star extends THREE.Mesh{
     const material = new THREE.MeshStandardMaterial( { color: 0xffffff } )
     
     material.emissive= new THREE.Color(0xff8000)
-    material.emissiveIntensity =  1  
+    material.emissiveIntensity =  1.7
     material.blendAlpha= 100
     
     super(geometry,material)
