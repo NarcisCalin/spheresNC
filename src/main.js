@@ -9,82 +9,139 @@ import { Star } from './shapes/Star.js'
 import { Planet } from './shapes/Planet.js'
 import {Moon} from './shapes/moon.js' // Nueva clase de luna
 import onWindowResize from './basic/Resize.js'
-
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
-
-//renderer.toneMapping = THREE.CineonToneMapping // He metido esto para testear.
-                                                 // Lo dejo metido por si quieres experimentar
-
-const loader = new THREE.TextureLoader();
-const spaceBg = new THREE.TextureLoader().load( "textures/spaceBG.png" )
-scene.background = spaceBg
-spaceBg.mapping = THREE.EquirectangularRefractionMapping
-spaceBg.colorSpace = THREE.SRGBColorSpace
-  
-// He reducido el número de lados porque 1000 era un valor extremadamente alto
-const star = new Star(1,64,64)
-const planet = new Planet(.5,32,32) 
-const moon = new Moon(0.2,16,16)
-
-const planeGeometry = new THREE.PlaneGeometry(20, 20)
-const planeMaterial = new THREE.MeshStandardMaterial( { color: 0xffffff } )
-const plane = new THREE.Mesh( planeGeometry, planeMaterial )
-
-const pointLightHelper = new THREE.PointLightHelper(light)
+import { Container } from './shapes/Container.js'
 
 const controls = new OrbitControls( camera, renderer.domElement )
 
-// Angle para luna y para planeta
-let anglePlanet = 0
-let angleMoon = 0
-
-
-Array(200).fill().forEach(()=>{
-  const star = new Star(0.1, 32, 16)
-  star.addStar(scene)
-})
 
 
 
+const framesPerSecond = 60
+// const secondsPerHour = 3600
+// const hourlyRotation = (2 * Math.PI) / (secondsPerHour * framesPerSecond)
 
-camera.position.set(0,5,7)
-light.position.set(0,0,0)
-
-// Permite sombras para ecplises
-planet.castShadow = true
-planet.receiveShadow = true
-moon.castShadow = true
-moon.receiveShadow = true
+const second = 1
+const minute = second * 60
+const hour = minute * 60
+const day = hour * 24 
+const year = day * 365 
 
 
+const loader = new THREE.TextureLoader()
+const eathTexture = loader.load("/textures/earthAlbedo.jpg")
+const moonTexture = loader.load("/textures/moonAlbedo.jpg")
 
-setInterval(()=>{
+
+const AU = 100
+const EARTH_SIZE = AU / 11727
+const MOON_SIZE = EARTH_SIZE / 3.67
+const SUN_SIZE = EARTH_SIZE * (109/2)
+
+
+const container = new Container(EARTH_SIZE)
+const star = new Star(SUN_SIZE,64,64)
+const planet = new Planet(EARTH_SIZE,32,32)
+const moon = new Planet(MOON_SIZE ,32,32)
+let cameraParent = planet
+
+
+planet.loadTexture(eathTexture)
+moon.loadTexture(moonTexture)
+
+container.add(camera)
+
+
+
+
+
+
+// Array(200).fill().forEach(()=>{
+  //     const star = new Star(SUN_SIZE, 32, 16)
+  //     star.addStar(scene)
+  //   })
   
-  planet.position.x = Math.cos(anglePlanet) * 6
-  planet.position.z = Math.sin(anglePlanet) * 6
-  anglePlanet += .01
-
-// Código para la órbita de la luna
-
-  moon.position.x = planet.position.x + Math.cos(angleMoon) * 2
-  moon.position.z = planet.position.z + Math.sin(angleMoon) * 2
-  angleMoon += .03
+  //planet.position.x = AU
+  camera.position.set(5,0,0)
   
-  if(anglePlanet > Math.PI*2 ){
-    anglePlanet = 0
-  }  
-  // Limitador para que no explote el pc con la luna
-  if(angleMoon > Math.PI*2 ){
-    angleMoon = 0
-  } 
   
-  controls.update() 
+  controls.maxDistance = 0.04
+  controls.update()
+  controls.maxDistance = Infinity
+  let previousTime = 0
+  function animate(currentTime){  
+
+    const deltaTime = (currentTime - previousTime) / 1000 // Tiempo en segundos
+    previousTime = currentTime
+
+    const planetOrbitIncrement = (2 * Math.PI / year) * deltaTime
+    const moonOrbitIncrement = (2 * Math.PI / (day * 27.3)) * deltaTime
+    const planetRotationIncrement = (2 * Math.PI / day) * deltaTime
+    const moonRotationIncrement = (2 * Math.PI /  (day * 27.3)) * deltaTime
+
+  planet.toOrbit(star,AU,planetOrbitIncrement,true)
+  moon.toOrbit(planet,AU * 0.002499,moonOrbitIncrement,true)
+  planet.rotate(planetRotationIncrement)
+  moon.rotate(moonRotationIncrement)
+  
+  container.position.copy(cameraParent.position)
+  
+  camera.lookAt(cameraParent.position)
+  
+  
+  
   renderer.render(scene,camera)
+  scene.add(planet.lineOrbit,moon.lineOrbit)
+  requestAnimationFrame(animate)
+}
+
+requestAnimationFrame(animate)
+
+scene.add(star,planet,light,moon,container)
+
+window.addEventListener( 'dblclick', ()=>changeCamera() );
+
+function changeCamera(){
   
-},1000/60)
+  console.log(cameraParent == planet);
+  if(cameraParent == planet){
+    console.log("planet to moon");
+    container.position.set(moon.position)
+    console.log(container.geometry.getAttribute())
+    cameraParent = moon
 
-scene.add(star,planet,moon,light)
+    controls.maxDistance = 0.014
+    controls.update()
+    controls.maxDistance = Infinity
 
+    
+  }else if(cameraParent == moon){
+    
+    console.log("moon to star");
+    container.position.set(star.position)
+    cameraParent = star 
 
-window.addEventListener( 'resize', ()=>onWindowResize(camera,renderer), false )
+    controls.maxDistance = 1
+    controls.update()
+    controls.maxDistance = Infinity
+    
+  }else{
+    console.log("star to planet");
+    container.position.set(moon.position)
+    cameraParent = planet
+
+    controls.maxDistance = 0.04
+    controls.update()
+    controls.maxDistance = Infinity
+    
+
+  }
+
+}
+
+function calcularIncrementoAngular(segundosPorVuelta, framesPorSegundo) {
+  // const totalFrames = segundosPorVuelta * framesPorSegundo;
+  const angleIncrementRadians = (2 * Math.PI /segundosPorVuelta) / framesPorSegundo;
+  return angleIncrementRadians;
+}
+
+window.addEventListener( 'resize', ()=>onWindowResize(camera,renderer), false );
