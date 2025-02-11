@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { materialThickness, texture } from 'three/tsl';
 
 export class Planet extends THREE.Mesh{
 
@@ -11,11 +12,10 @@ export class Planet extends THREE.Mesh{
 
 
   firstOrbit = false
-
   constructor(radius,widthSegments,heightSegments){
    
     const geometry = new THREE.SphereGeometry(radius,widthSegments,heightSegments)
-    const material =  new THREE.MeshStandardMaterial({color: 0xffffff}) 
+    const material =  new THREE.MeshPhysicalMaterial({color: 0xffffff}) 
     
     super(geometry,material)
 
@@ -85,9 +85,17 @@ export class Planet extends THREE.Mesh{
       }
 
 
-      loadTexture(texture){
-        this.material = new THREE.MeshStandardMaterial({
-            map: texture
+      loadTexture(map, bumpMap = undefined, bumpScale = 1, roughnessMap = undefined, transparent = 0, alphaMap = undefined){
+        this.material = new THREE.MeshPhysicalMaterial({
+            map,
+            bumpMap,
+            bumpScale,
+            roughnessMap,
+            transparent,
+            alphaMap,
+            
+            
           })
       }
+      
 }
