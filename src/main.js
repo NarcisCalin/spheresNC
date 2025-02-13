@@ -7,9 +7,11 @@ import light from './basic/Light.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Star } from './shapes/Star.js'
 import { Planet as Body } from './shapes/Planet.js'
+import { PlanetVisuals } from './shapes/PlanetVisual.js'
 import onWindowResize from './basic/Resize.js'
 import { Container } from './shapes/Container.js'
 import { bumpMap, deltaTime } from 'three/tsl'
+import Stats from 'stats.js'
 
 const axesHelper = new THREE.AxesHelper( 100000 );
 
@@ -44,7 +46,7 @@ const moonBump = loader.load("/textures/moonBump.jpg")
 
 const KM = 1
 const AU = KM * 1.496 * Math.pow(10, 8)
-const EARTH_SIZE = AU / 11727
+const EARTH_SIZE = KM * 6378
 //const EARTHATMOS_SIZE = EARTH_SIZE * 1.2
 const EARTHCLOUDS_SIZE = EARTH_SIZE * 1.006
 const MOON_SIZE = EARTH_SIZE / 3.67
@@ -58,41 +60,47 @@ console.log(EARTH_MASS)
 
 const container = new Container(EARTH_SIZE)
 const star = new Star(SUN_SIZE,64,64)
-const planet = new Body({radius: EARTH_SIZE, mass: EARTH_MASS, posX: AU, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: 107000 * 10 , widthSegments: 32, heightSegments: 32})
-const planetClouds = new Body(EARTHCLOUDS_SIZE,32,32)
+const earth = new Body({radius: EARTH_SIZE, mass: EARTH_MASS, posX: AU, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: 107000 * 10 , widthSegments: 32, heightSegments: 32})
+const planetClouds = new PlanetVisuals(EARTHCLOUDS_SIZE,32,32)
 //const planetAtmos = new Planet(EARTHCLOUDS_SIZE,32,32)
 const moon = new Body({radius: MOON_SIZE, mass: MOON_MASS, posX: AU, posY: 0, posZ: 384400, velX: 28000, velY: 0, velZ: 107000 * 10, widthSegments: 32, heightSegments: 32})
 const sun = new Body({radius: SUN_SIZE, mass: SUN_MASS, posX: 0, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: 0, widthSegments: 64, heightSegments: 64})
+const mars = new Body({radius: EARTH_SIZE * 0.532, mass: EARTH_MASS * 0.107, posX: AU * 1.5, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: (107000 * 10) * 0.809 , widthSegments: 32, heightSegments: 32})
 let cameraParent = star
 
 
-planet.loadTexture(earthAlbedo, earthBump, 2, earthRough)
+earth.loadTexture(earthAlbedo, earthBump, 2, earthRough)
 planetClouds.loadTexture(earthCloud, earthCloud, 2, 0, 1, earthCloud, 1)
 //planetAtmos.loadTexture(0, 0, 0, 0, 1, 1, 1)
 moon.loadTexture(moonAlbedo, moonBump, 5)
 
+
+const manualBodies = [sun, earth, moon, mars,]
 const bodies = []
- Array(100).fill().forEach(()=>{
-        const nbody = new Body({
-          radius: MOON_SIZE / 10,
-          mass: MOON_MASS / 100,
-          posX: AU + Math.random() * 40000 - 20000,
-          posY: Math.random() * 8000 - 4000,
-          posZ: Math.random() * 100000 + 50000,
-          velX: Math.random() * 1000 - 500,
-          velY: Math.random() * 8000 - 4000,
-          velZ: 107000 * 10 + 100000,
-          widthSegments: 32,
-          heightSegments: 32})
-
-
-        bodies.push(nbody)
-      })
-
-      bodies.push(planet, moon, sun)
-//const bodies = [planet, moon, moon2, moon3]
-
-function gravityLogic(deltaTime, bodies){
+Array(300).fill().forEach(()=>{
+  const nbody = new Body({
+    radius: MOON_SIZE / 8,
+    mass: MOON_MASS / 100,
+    posX: AU + Math.random() * 15000 - 7500,
+    posY: Math.random() * 8000 - 4000,
+    posZ: Math.random() * 50000 + 25000,
+    velX: 100000,
+    velY: Math.random() * 8000 - 4000,
+    velZ: 107000 * 10 + 50000,
+    widthSegments: 32,
+    heightSegments: 32})
+    
+    
+    bodies.push(nbody)
+  })
+  
+  bodies.push(...manualBodies)
+  //const bodies = [planet, moon, moon2, moon3]
+  //earth.add(planetClouds)
+  //Esto es para añadir complementos a planetas como nubes
+  //scene.add(planetClouds)
+  
+  function gravityLogic(deltaTime, bodies){
   
   for(let i = 0; i < bodies.length; i++){
     for(let j = i + 1; j < bodies.length; j++){
@@ -148,83 +156,122 @@ function gravityLogic(deltaTime, bodies){
 }
 
 const trailDots = []; // Moved outside the function to persist between calls
-const MAX_DOTS = 1200;
 const trailGeometry = new THREE.SphereGeometry(250, 4, 4);
 const trailMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
 
+const MAX_DOTS = 6 * bodies.length;
 function bodyTrail(bodies) {
+
+
   // Add new dots for each body
   for (const body of bodies) {
     const dot = new THREE.Mesh(trailGeometry, trailMaterial);
     dot.position.copy(body.position);
     trailDots.push(dot);
     scene.add(dot);
-    planet.attach(dot)
+    earth.attach(dot)
   }
-
-
-
+  
+  
   // Remove excess dots from the beginning and the scene
   while (trailDots.length > MAX_DOTS) {
     const oldDot = trailDots.shift(); // Remove oldest dot
     scene.remove(oldDot);
-    planet.remove(oldDot)
+    earth.remove(oldDot)
   }
+  
 }
 
 
 
-planet.castShadow = true
-planet.receiveShadow = true
+earth.castShadow = true
+earth.receiveShadow = true
 moon.castShadow = true
 moon.receiveShadow = true
 
 
 
 
+
+
+
+
+
+
+
+let previousTime = 0
+
+var stats = new Stats();
+stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild( stats.dom );
+
+
+
 container.add(camera)
-cameraParent = planet
+camera.position.set(240000000,24000,-20000)
+let manualPlanetsIndex = 1
+const planetCamDistance = 3
 
+cameraParent = manualBodies.at(manualPlanetsIndex)
+controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+controls.update()
+controls.minDistance = 0
+controls.maxDistance = Infinity
 
+window.addEventListener( 'keypress', ()=>changeCameraUpdated() );
 
+function changeCameraUpdated(){
 
-  camera.position.set(240000000,24000,-20000)
-  
-  
-  controls.maxDistance = 60000
-  controls.update()
-  controls.maxDistance = Infinity
-  let previousTime = 0
+  if(camera.position === camera.position){
+
+    if(manualPlanetsIndex < manualBodies.length - 1) {
+      manualPlanetsIndex += 1
+      cameraParent = manualBodies.at(manualPlanetsIndex)
+      controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+      controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+      controls.update()
+      controls.minDistance = 0
+      controls.maxDistance = Infinity
+      
+    }else{
+      manualPlanetsIndex = 0
+      cameraParent = manualBodies.at(manualPlanetsIndex)
+      controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+      controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
+      controls.update()
+      controls.minDistance = 0
+      controls.maxDistance = Infinity
+      
+    }
+  }
+
+  }
+
   function animate(currentTime){  
     
-    const deltaTime = (currentTime - previousTime) / 100 // Tiempo en segundos
+    const deltaTime = (currentTime - previousTime) / 1000 // Tiempo en segundos
     previousTime = currentTime
     
     gravityLogic(deltaTime, bodies)
 
     bodyTrail(bodies)
    
-
    
+    stats.begin();
 
-    
-
-
-
-    //testAngle += 0.1
-
-    //moon.position.x = 
-    
-    
-    
     
     container.position.copy(cameraParent.position)
     
     camera.lookAt(cameraParent.position)
     
     renderer.render(scene,camera)
-    scene.add(planet.lineOrbit,moon.lineOrbit)
+    scene.add(earth.lineOrbit,moon.lineOrbit)
+
+
+    stats.end();
+
     requestAnimationFrame(animate)
     
     
@@ -236,49 +283,10 @@ cameraParent = planet
   requestAnimationFrame(animate)
   
   scene.add(light,container,axesHelper)
-  
-  window.addEventListener( 'dblclick', ()=>changeCamera() );
-  
-  
-  
-  
-  function changeCamera(){
-    
-    console.log(cameraParent == planet);
-    if(cameraParent == planet){
-    console.log("planet to moon");
-    container.position.set(moon.position)
-    console.log(container.geometry.getAttribute())
-    cameraParent = moon
-    controls.minDistanceDistance = 24000
-    controls.maxDistance = 24000
-    controls.update()
-    controls.maxDistance = Infinity
 
-    
-  }else if(cameraParent == moon){
-    
-    console.log("moon to star");
-    container.position.set(star.position)
-    cameraParent = star 
-    controls.minDistanceDistance = 60000
-    controls.maxDistanceDistance = 60000
-    controls.update()
-    controls.maxDistance = Infinity
-    
-  }else{
-    console.log("star to planet");
-    container.position.set(moon.position)
-    cameraParent = planet
-    controls.minDistanceDistance = 24000
-    controls.maxDistanceDistance = 24000
-    controls.update()
-    controls.maxDistance = Infinity
-    
-
-  }
-
-}
+  
+  
+  
 
 
 
