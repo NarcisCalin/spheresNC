@@ -1,8 +1,12 @@
-import * as THREE from 'three'
-import { parameter } from 'three/tsl';
+import * as THREE from "three";
 
-
-const renderer = new THREE.WebGLRenderer({logarithmicDepthBuffer: true});
-renderer.setSize( window.innerWidth, window.innerHeight ); 
-document.body.appendChild( renderer.domElement );
-export default renderer
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: "high-performance",
+});
+renderer.vsync = false;
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+export default renderer;

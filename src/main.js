@@ -1,318 +1,164 @@
-import * as THREE from 'three'
+import { light, renderer, scene } from "./basic";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { Container, Planet, Star } from "./shapes/";
+import onWindowResize from "./basic/Resize.js";
+import * as Constants from "./constants/constants.js";
+import * as Calculations from "./utils/calculations.js";
+import * as TexturesRoutes from "./constants/textures.js";
+import {
+  CameraService,
+  PlanetWorkerService,
+  TexturesService,
+} from "./services";
 
-import scene from './basic/Scene.js'
-import camera from './basic/Camera.js'
-import renderer from './basic/Renderer.js'
-import light from './basic/Light.js'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Star } from './shapes/Star.js'
-import { Planet as Body } from './shapes/Planet.js'
-import { PlanetVisuals } from './shapes/PlanetVisual.js'
-import onWindowResize from './basic/Resize.js'
-import { Container } from './shapes/Container.js'
-import { bumpMap, deltaTime } from 'three/tsl'
-import Stats from 'stats.js'
+import Stats from "stats.js";
 
-const axesHelper = new THREE.AxesHelper( 100000 );
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFShadowMap
+///STATS
+const stats = new Stats();
+stats.showPanel(0); // 0: fps, 1: ms, 2: mb, 3+: custom
+document.body.appendChild(stats.dom);
 
+const cameraService = CameraService.getInstance();
+const texturesService = TexturesService.getInstance();
 
-const controls = new OrbitControls( camera, renderer.domElement );
+const camera = cameraService.createPerspectiveCamera({
+  fov: 75,
+  aspect: window.innerWidth / window.innerHeight,
+  near: 0.001,
+  far: 100000,
+});
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enablePan = false;
 
+//OBJECTS
+const container = new Container(Constants.SUN_SIZE);
+const allMeshesJSON = initializeAllMeshes(Constants.MESHES_DEFINITION);
 
+const allMeshes = Object.values(allMeshesJSON);
+const planets = allMeshes.filter((mesh) => mesh instanceof Planet);
 
+const earthClouds = allMeshes.filter((mesh) => mesh.name === "earthClouds")[0];
+const earth = allMeshes.filter((mesh) => mesh.name === "earth")[0];
 
+const bodiesWithWorkers = [...planets, earthClouds];
 
-const framesPerSecond = 60
-// const secondsPerHour = 3600
-// const hourlyRotation = (2 * Math.PI) / (secondsPerHour * framesPerSecond)
+const planetWorkerService = new PlanetWorkerService(bodiesWithWorkers);
+const cameraTargets = allMeshes.filter((mesh) => mesh.canBeFocused);
+const sceneElements = [light, container, ...allMeshes];
 
-const second = 1
-const minute = second * 60
-const hour = minute * 60
-const day = hour * 24 
-const year = day * 365 
+//TEXTURES
+await initializeTextures();
 
-const G = 6.674 * Math.pow(10, -11)
+let previousTime = 0;
+//CAMERA CONFIG
+camera.position.set(-5, 0, 0);
+container.add(camera);
 
-const loader = new THREE.TextureLoader()
-const earthAlbedo = loader.load("/textures/earthAlbedo.png")
-const earthBump = loader.load("/textures/earthBump.png")
-const earthRough = loader.load("/textures/earthRough.png")
-const earthCloud = loader.load("/textures/earthClouds.png")
-const moonAlbedo = loader.load("/textures/moonAlbedo.jpg")
-const moonBump = loader.load("/textures/moonBump.jpg")
+container.setCurrentTarget(cameraTargets[0]);
+adjustCamera(container.getCurrentTarget());
 
-const KM = 1
-const AU = KM * 1.496 * Math.pow(10, 8)
-const EARTH_SIZE = KM * 6378
-//const EARTHATMOS_SIZE = EARTH_SIZE * 1.2
-const EARTHCLOUDS_SIZE = EARTH_SIZE * 1.006
-const SUN_SIZE = EARTH_SIZE * (109/2)
+earth.add(earthClouds);
+earthClouds.position.set(0, 0, 0);
 
-const EARTH_MASS = 5.9722 * Math.pow(10, 24)
-const SUN_MASS = 2* Math.pow(10, 30)
-console.log(EARTH_MASS)
+addElementsToScene(sceneElements);
 
+requestAnimationFrame(animate);
 
-const container = new Container(EARTH_SIZE)
-container.visible = false
-const star = new Star(SUN_SIZE,64,64)
-const earth = new Body({radius: EARTH_SIZE, mass: EARTH_MASS, posX: AU, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: 107000 * 10 , widthSegments: 32, heightSegments: 32})
-const planetClouds = new PlanetVisuals(EARTHCLOUDS_SIZE,32,32)
-//const planetAtmos = new Planet(EARTHCLOUDS_SIZE,32,32)
-const moon = new Body({radius: EARTH_SIZE * 0.2724 / 2, mass: EARTH_MASS * 0.0123, posX: AU, posY: 0, posZ: 384400, velX: 28000, velY: 0, velZ: 107000 * 10, widthSegments: 32, heightSegments: 32})
-const sun = new Body({radius: SUN_SIZE, mass: SUN_MASS, posX: 0, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: 0, widthSegments: 64, heightSegments: 64})
-const mars = new Body({radius: EARTH_SIZE * 0.532 / 2, mass: EARTH_MASS * 0.107, posX: AU * 1.5, posY: 0, posZ: 0, velX: 0, velY: 0, velZ: (107000 * 10) * 0.809 , widthSegments: 32, heightSegments: 32})
-let cameraParent = star
+window.addEventListener("keypress", () =>
+  changeCamera(container, cameraTargets)
+);
+window.addEventListener(
+  "resize",
+  () => onWindowResize(camera, renderer),
+  false
+);
 
+function initializeAllMeshes(meshesDefinition) {
+  const sun = new Star(Constants.SUN);
 
-earth.loadTexture(earthAlbedo, earthBump, 2, earthRough)
-planetClouds.loadTexture(earthCloud, earthCloud, 2, 0, 1, earthCloud, 1)
-//planetAtmos.loadTexture(0, 0, 0, 0, 1, 1, 1)
-moon.loadTexture(moonAlbedo, moonBump, 5)
+  const allMeshes = {};
+  allMeshes[sun.name] = sun;
 
+  meshesDefinition.forEach((planet) => {
+    const planetMesh = new Planet(planet);
 
-const manualBodies = [sun, earth, moon, mars,]
-const bodies = [...manualBodies]
-Array(200).fill().forEach(()=>{
-  const nbody = new Body({
-    radius: EARTH_SIZE / 8,
-    mass: EARTH_MASS * 0.000492,
-    posX: AU + Math.random() * 150000 - 75000,
-    posY: Math.random() * 16000 - 8000,
-    posZ: Math.random() * 70000 + 35000,
-    velX: 100000,
-    velY: Math.random() * 20000 - 10000,
-    velZ: 107000 * 9 + 90000,
-    widthSegments: 32,
-    heightSegments: 32})
-    
-    
-    bodies.push(nbody)
-  })
-  
-  
-  //const bodies = [planet, moon, moon2, moon3]
-  //earth.add(planetClouds)
-  //Esto es para añadir complementos a planetas como nubes
-  //scene.add(planetClouds)
-  
-  function gravityLogic(deltaTime, bodies){
-    
-    for(let i = 0; i < bodies.length; i++){
-      for(let j = i + 1; j < bodies.length; j++){
-        
-        const bodyA = bodies[i]
-        const bodyB = bodies[j]
-        
-        let distanceX = bodyB.position.x - bodyA.position.x
-        let distanceY = bodyB.position.y - bodyA.position.y
-        let distanceZ = bodyB.position.z - bodyA.position.z
-        
-        let distanceSquared = distanceX * distanceX + distanceY * distanceY + distanceZ * distanceZ
-        let distance = Math.sqrt(distanceSquared)
-        
-        let force = G * bodyA.mass * bodyB.mass / distanceSquared
-        
-        
-        let normalizedX = distanceX / distance
-        let normalizedY = distanceY / distance
-        let normalizedZ = distanceZ / distance
-        
-        let accelerationBodyA = force / bodyA.mass
-        let accelerationBodyB = force / bodyB.mass
-        
-        bodyA.velX += normalizedX * accelerationBodyA * deltaTime
-        bodyA.velY += normalizedY * accelerationBodyA * deltaTime
-        bodyA.velZ += normalizedZ * accelerationBodyA * deltaTime
-        
-        bodyB.velX -= normalizedX * accelerationBodyB * deltaTime
-        bodyB.velY -= normalizedY * accelerationBodyB * deltaTime
-        bodyB.velZ -= normalizedZ * accelerationBodyB * deltaTime
-        
-        if(distance <= 10){
-          bodyA.velX = 0
-          bodyA.velY = 0
-          bodyA.velZ = 0
-          bodyB.velX = 0
-          bodyB.velY = 0
-          bodyB.velZ = 0
-        }
-        
-      }
-    }
-    for (const body of bodies) {
-      body.position.x += body.velX * deltaTime
-      body.position.y += body.velY * deltaTime
-      body.position.z += body.velZ * deltaTime
-      scene.add(body)
-    }
-    
-    
-    
-  }
-  
-  const trailDots = []; // Moved outside the function to persist between calls
-  const trailGeometry = new THREE.SphereGeometry(260, 4, 4);
-  const trailMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  
-  
-  const MAX_DOTS = 12 * bodies.length;
-  function bodyTrail(bodies) {
-    
-    
-    // Add new dots for each body
-    for (const body of bodies) {
-      const dot = new THREE.Mesh(trailGeometry, trailMaterial);
-      dot.position.copy(body.position);
-      trailDots.push(dot);
-      scene.add(dot);
-      earth.attach(dot)
-    }
-    
-    
-    // Remove excess dots from the beginning and the scene
-    while (trailDots.length > MAX_DOTS) {
-      const oldDot = trailDots.shift(); // Remove oldest dot
-      scene.remove(oldDot);
-      earth.remove(oldDot)
-    }
-    bodies.forEach(body => {
-      body.frustumCulled = false;
-    });
-  }
+    planetMesh.setOrbited(sun);
+    allMeshes[planet.name] = planetMesh;
+  });
+  const moon = allMeshes["moon"];
+  const earth = allMeshes["earth"];
 
-  scene.add(earth, moon)
-  let trailIndex = 0
-  function trailLines(trailDots){
-    const material = new THREE.LineBasicMaterial( { color: 0x0000ff } );
-    const points = [];
+  moon.setOrbited(earth);
 
-    trailIndex += 1
+  return allMeshes;
+}
 
-    points.push( new THREE.Vector3( trailDots[trailIndex].position.x, trailDots[trailIndex].position.y, trailDots[trailIndex].position.z) );
-    points.push( new THREE.Vector3( trailDots[trailIndex].position.x, trailDots[trailIndex].position.y, trailDots[trailIndex].position.z ) );
+async function initializeTextures() {
+  const meshesWithTextures = createMeshesWithTexturesJSON(allMeshes);
 
-    const geometry = new THREE.BufferGeometry().setFromPoints( points );
-    const line = new THREE.Line( geometry, material );
+  const texturesPromises = [];
 
-    scene.add(line)
-    earth.attach(line)
-  }
+  meshesWithTextures.forEach((meshWithTextures) => {
+    texturesPromises.push(
+      loadAndApplyTextures(
+        meshWithTextures.mesh,
+        meshWithTextures.texturesRoute
+      )
+    );
+  });
 
-  
-  
-  
-  earth.castShadow = true
-  earth.receiveShadow = true
-  moon.castShadow = true
-  moon.receiveShadow = true
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  let previousTime = 0
-  
-  var stats = new Stats();
-  stats.showPanel( 0 ); // 0: fps, 1: ms, 2: mb, 3+: custom
-  document.body.appendChild( stats.dom );
-  
-  
-  
-  container.add(camera)
-  camera.position.set(240000000,24000,-20000)
-  let manualPlanetsIndex = 1
-  const planetCamDistance = 3
-  
-  cameraParent = manualBodies.at(manualPlanetsIndex)
-  controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-  controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-  controls.update()
-  controls.minDistance = 0
-  controls.maxDistance = Infinity
-  
-  window.addEventListener( 'keypress', ()=>changeCameraUpdated() );
+  await Promise.all(texturesPromises);
+}
 
-  
-  
-  function changeCameraUpdated(){
-    
-    if(camera.position === camera.position){
-      
-      if(manualPlanetsIndex < manualBodies.length - 1) {
-        manualPlanetsIndex += 1
-        cameraParent = manualBodies.at(manualPlanetsIndex)
-        controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-        controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-        controls.update()
-        controls.minDistance = 0
-        controls.maxDistance = Infinity
-        
-      }else{
-        manualPlanetsIndex = 0
-        cameraParent = manualBodies.at(manualPlanetsIndex)
-        controls.minDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-        controls.maxDistance = manualBodies.at(manualPlanetsIndex).radius * planetCamDistance
-        controls.update()
-        controls.minDistance = 0
-        controls.maxDistance = Infinity
-        
-      }
-    }
-    
-  }
-  
-  function animate(currentTime){  
-    
-    const deltaTime = (currentTime - previousTime) / 1000 // Tiempo en segundos
-    previousTime = currentTime
-    
-    gravityLogic(deltaTime, bodies)
-    
-    bodyTrail(bodies)
+function createMeshesWithTexturesJSON(allMeshes) {
+  return allMeshes.map((mesh) => {
+    return {
+      mesh,
+      texturesRoute: TexturesRoutes.texturesRouteMap[mesh.name] || undefined,
+    };
+  });
+}
 
-    //trailLines(trailDots)
-    
-    
-    stats.begin();
-    
-    
-    container.position.copy(cameraParent.position)
-    
-    camera.lookAt(cameraParent.position)
-    
-    renderer.render(scene,camera)
-    scene.add(earth.lineOrbit,moon.lineOrbit)
-    
-    
-    stats.end();
-    
-    requestAnimationFrame(animate)
-    
-    
-    
-    
-    
-  }
-  
-  requestAnimationFrame(animate)
-  
-  scene.add(light,container,axesHelper)
-  
-  
-  
-  
-  
-  
-  
-  
-window.addEventListener( 'resize', ()=>onWindowResize(camera,renderer), false );
+async function loadAndApplyTextures(mesh, texturesRoute) {
+  const texturesLoaded = await texturesService.loadTextures(texturesRoute);
+  texturesService.applyTextures(mesh, texturesLoaded);
+}
+
+function changeCamera() {
+  cameraService.changeCamera(container, cameraTargets);
+  const currentTarget = container.getCurrentTarget();
+  adjustCamera(currentTarget);
+}
+
+function adjustCamera(currentTarget) {
+  controls.minDistance =
+    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE;
+  controls.maxDistance =
+    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE;
+  controls.update();
+  controls.minDistance = 0;
+  controls.maxDistance = Infinity;
+}
+
+function animate(currentTime) {
+  stats.begin();
+  const deltaTime = Calculations.calculateDeltaTime(currentTime, previousTime);
+  previousTime = currentTime;
+
+  planetWorkerService.update(deltaTime);
+
+  container.position.copy(container.getCurrentTarget().position);
+
+  earthClouds.position.copy(earth.position);
+  camera.lookAt(container.position);
+
+  renderer.render(scene, camera);
+  stats.end();
+  requestAnimationFrame(animate);
+}
+
+function addElementsToScene(elements) {
+  elements.forEach((element) => {
+    scene.add(element);
+  });
+}
