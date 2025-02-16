@@ -23,6 +23,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 
 
 
+
 const framesPerSecond = 60
 // const secondsPerHour = 3600
 // const hourlyRotation = (2 * Math.PI) / (secondsPerHour * framesPerSecond)
@@ -74,7 +75,7 @@ moon.loadTexture(moonAlbedo, moonBump, 5)
 
 
 const manualBodies = [sun, earth, moon, mars,]
-const bodies = []
+const bodies = [...manualBodies]
 Array(200).fill().forEach(()=>{
   const nbody = new Body({
     radius: EARTH_SIZE / 8,
@@ -92,7 +93,7 @@ Array(200).fill().forEach(()=>{
     bodies.push(nbody)
   })
   
-  bodies.push(...manualBodies)
+  
   //const bodies = [planet, moon, moon2, moon3]
   //earth.add(planetClouds)
   //Esto es para añadir complementos a planetas como nubes
@@ -240,6 +241,8 @@ Array(200).fill().forEach(()=>{
   controls.maxDistance = Infinity
   
   window.addEventListener( 'keypress', ()=>changeCameraUpdated() );
+
+  
   
   function changeCameraUpdated(){
     
