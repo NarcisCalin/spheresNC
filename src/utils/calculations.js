@@ -3,6 +3,7 @@ export function calculateAngularIncrement(secondsPerLap, deltaTime) {
   return angleIncrementRadians;
 }
 
-export function calculateDeltaTime(currentTime, previousTime) {
-  return (currentTime - previousTime) / 1000;
+export function calculateDeltaTime(currentTime, previousTime, timeScale = 0.00001) {
+  const realDelta = currentTime - previousTime;
+  return (realDelta / 1000) / timeScale;
 }

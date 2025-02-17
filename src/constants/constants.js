@@ -1,10 +1,14 @@
-export const SECOND = 0.00001;
+export const SECOND = 1;
 export const MINUTE = SECOND * 60;
 export const HOUR = MINUTE * 60;
 export const DAY = HOUR * 23.934469;
 export const YEAR = DAY * 365.25;
-export const MAX_ORBIT_POINTS = 1000;
-export const AU = 100;
+
+export const KILOGRAM = 1;
+export const KILOMETER = 1;
+export const G = 6.674e-20;
+export const AU = KILOMETER * 1.496e8;
+
 export const EARTH_SIZE = AU / 11727;
 export const EARTH_CLOUDS_SIZE = EARTH_SIZE * 1.01;
 export const MOON_SIZE = EARTH_SIZE * 0.273;
@@ -17,6 +21,10 @@ export const SATURN_SIZE = EARTH_SIZE * 9.14;
 export const URANUS_SIZE = EARTH_SIZE * 3.98;
 export const NEPTUNE_SIZE = EARTH_SIZE * 3.86;
 
+export const EARTH_MASS = 5.9722e24;
+export const MOON_MASS = EARTH_MASS * 0.0123;
+
+
 export const MERCURY_SIDERAL_DAY = DAY * 58.6;
 export const VENUS_SIDERAL_DAY = DAY * 243;
 export const EARTH_SIDERAL_DAY = DAY;
@@ -26,7 +34,7 @@ export const SATURN_SIDERAL_DAY = HOUR * 10.7;
 export const URANUS_SIDERAL_DAY = HOUR * 17.24;
 export const NEPTUNE_SIDERAL_DAY = HOUR * 16.11;
 export const MOON_SIDERAL_DAY = DAY * 27.3;
-export const EARTH_CLOUDS_SIDERAL_DAY = HOUR / 14;
+export const EARTH_CLOUDS_SIDERAL_DAY = HOUR * 14;
 
 export const MERCURY_ORBITAL_PERIOD = DAY * 88;
 export const VENUS_ORBITAL_PERIOD = DAY * 225;
@@ -52,13 +60,34 @@ export const EARTH_CLOUDS_DISTANCE_TO_ORBITED = AU;
 export const EARTH = {
   name: "earth",
   radius: EARTH_SIZE,
+  mass: EARTH_MASS,
+  position: [0, 0, 0],
+  velX: 0,
+  velY: 0,
+  velZ: 0,
   widthSegments: 32,
   heightSegments: 32,
-  sideralDay: EARTH_SIDERAL_DAY,
-  orbitalPeriod: EARTH_ORBITAL_PERIOD,
-  distanceToOrbited: EARTH_DISTANCE_TO_ORBITED,
-  translateCounterClockWise: true,
-  rotateCounterClockWise: true,
+  isPlanet: true,
+  canBeFocused: true,
+};
+export const EARTH_CLOUDS = {
+  name: "earthClouds",
+  radius: EARTH_CLOUDS_SIZE,
+  widthSegments: 32,
+  heightSegments: 32,
+  isPlanet: false,
+  canBeFocused: false,
+};
+export const MOON = {
+  name: "moon",
+  radius: MOON_SIZE,
+  mass: MOON_MASS,
+  widthSegments: 32,
+  heightSegments: 32,
+  position: [0, 0, 384400],
+  velX: 1.022 * KILOMETER / SECOND,
+  velY: 0,
+  velZ: 0,
   isPlanet: true,
   canBeFocused: true,
 };
@@ -74,18 +103,6 @@ export const MERCURY = {
   rotateCounterClockWise: true,
   isPlanet: true,
   canBeFocused: true,
-};
-export const EARTH_CLOUDS = {
-  name: "earthClouds",
-  radius: EARTH_CLOUDS_SIZE,
-  widthSegments: 32,
-  heightSegments: 32,
-  sideralDay: EARTH_CLOUDS_SIDERAL_DAY,
-  orbitalPeriod: EARTH_ORBITAL_PERIOD,
-  distanceToOrbited: EARTH_CLOUDS_DISTANCE_TO_ORBITED,
-  translateCounterClockWise: true,
-  isPlanet: false,
-  canBeFocused: false,
 };
 export const VENUS = {
   name: "venus",
@@ -109,18 +126,6 @@ export const MARS = {
   distanceToOrbited: MARS_DISTANCE_TO_ORBITED,
   translateCounterClockWise: true,
   rotateCounterClockWise: true,
-  isPlanet: true,
-  canBeFocused: true,
-};
-export const MOON = {
-  name: "moon",
-  radius: MOON_SIZE,
-  widthSegments: 32,
-  heightSegments: 32,
-  sideralDay: MOON_SIDERAL_DAY,
-  orbitalPeriod: MOON_ORBITAL_PERIOD,
-  distanceToOrbited: MOON_DISTANCE_TO_ORBITED,
-  translateCounterClockWise: true,
   isPlanet: true,
   canBeFocused: true,
 };
@@ -186,17 +191,18 @@ export const SUN = {
   canBeFocused: true,
 };
 
+
 export const MESHES_DEFINITION = [
-  MERCURY,
-  VENUS,
+  //MERCURY,
+  //VENUS,
   EARTH,
-  MARS,
-  JUPITER,
-  SATURN,
-  URANUS,
-  NEPTUNE,
+  //MARS,
+  //JUPITER,
+  //SATURN,
+  //URANUS,
+  //NEPTUNE,
   MOON,
-  EARTH_CLOUDS,
+  //EARTH_CLOUDS,
 ];
 
 export const TARGET_CAM_DISTANCE = 3;

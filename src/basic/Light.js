@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-const light = new THREE.AmbientLight(0x404040);
+const light = new THREE.AmbientLight(0xffffff);
 const pointLight = new THREE.PointLight(0xffffff, 1000, 0, 1.3);
 pointLight.castShadow = true;
 pointLight.shadow.camera.near = 0.0001;

@@ -1,28 +1,29 @@
 import * as THREE from "three";
 
 export class Body extends THREE.Mesh {
-  orbitalPeriod = 0;
+  
+  mass = 0;
+  velX = 0;
+  velY = 0;
+  velZ = 0;
   sideralDay = 0;
-  translationAngle = 0;
+  
   rotateAngle = 0;
-  orbit = [];
-  orbited = undefined;
-  distanceToOrbited = 0;
-  translateCounterClockWise = false;
-  rotateCounterClockWise = false;
   canBeFocused = false;
+
+  
 
   constructor({
     name,
     radius,
+    mass = 0,
+    position,
+    velX = 0,
+    velY = 0,
+    velZ = 0,
     widthSegments,
     heightSegments,
     sideralDay = 0,
-    orbitalPeriod = 0,
-    orbited = undefined,
-    distanceToOrbited = 0,
-    translateCounterClockWise = false,
-    rotateCounterClockWise = false,
     canBeFocused = false,
     material = undefined,
     geometry = undefined,
@@ -32,51 +33,34 @@ export class Body extends THREE.Mesh {
       geometry ??
       new THREE.SphereGeometry(radius, widthSegments, heightSegments);
     super(geometry, material);
+    this.position.set(...position);
     this.name = name;
     this.radius = radius;
+    this.mass = mass;
+    this.velX = velX;
+    this.velY = velY;
+    this.velZ = velZ;
     this.sideralDay = sideralDay;
-    this.orbitalPeriod = orbitalPeriod;
-    this.orbited = orbited;
-    this.distanceToOrbited = distanceToOrbited;
-    this.translateCounterClockWise = translateCounterClockWise;
-    this.rotateCounterClockWise = rotateCounterClockWise;
     this.canBeFocused = canBeFocused;
   }
-  getTranslateCounterClockWise() {
-    return this.translateCounterClockWise;
+  getMass(){
+    return this.mass;
   }
-  getTranslationAngle() {
-    return this.translationAngle;
+  getVelX(){
+    return this.velX;
   }
-  setTranslationAngle(translationAngle) {
-    this.translationAngle = translationAngle;
+  getVelY(){
+    return this.velY;
   }
-
-  getRotateCounterClockWise() {
-    return this.rotateCounterClockWise;
+  getVelZ(){
+    return this.velZ;
   }
   getSideralDay() {
     return this.sideralDay;
   }
-  getDistanceToOrbited() {
-    return this.distanceToOrbited;
-  }
-
-  getOrbited() {
-    return this.orbited;
-  }
-  setOrbited(orbited) {
-    this.orbited = orbited;
-  }
-
-  getOrbitalPeriod() {
-    return this.orbitalPeriod;
-  }
-
   setAngle(newAngle) {
     this.angle = newAngle;
   }
-
   getRadius() {
     return this.radius;
   }
