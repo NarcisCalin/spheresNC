@@ -2,7 +2,7 @@ import * as THREE from 'three'
 
 import { light, renderer, scene } from "./basic";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { Container, Planet, Star } from "./shapes/";
+import { Body, Container, Planet, Star } from "./shapes/";
 import onWindowResize from "./basic/Resize.js";
 import * as Constants from "./constants/constants.js";
 import * as Calculations from "./utils/calculations.js";
@@ -42,6 +42,8 @@ const allMeshesJSON = initializeAllMeshes(Constants.MESHES_DEFINITION);
 
 const allMeshes = Object.values(allMeshesJSON);
 const planets = allMeshes.filter((mesh) => mesh instanceof Planet);
+
+const sun = new Star(Constants.SUN);
 
 const earthClouds = allMeshes.filter((mesh) => mesh.name === "earthClouds")[0];
 const earth = allMeshes.filter((mesh) => mesh.name === "earth")[0];
@@ -136,9 +138,9 @@ function changeCamera() {
 
 function adjustCamera(currentTarget) {
   controls.minDistance =
-    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE;
+    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE * 5;
   controls.maxDistance =
-    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE;
+    currentTarget.getRadius() * Constants.TARGET_CAM_DISTANCE * 5;
   controls.update();
   controls.minDistance = 0;
   controls.maxDistance = Infinity;
@@ -146,14 +148,22 @@ function adjustCamera(currentTarget) {
 
 //GRAVITY SIMULATION
 
-const manualBodies = [earth, moon]
+const manualBodies = [sun, earth, moon]
 const bodies = [...manualBodies]
-// Array(200).fill().forEach(()=>{
-//   const nbody = allMeshes.filter((mesh) => mesh.name === "nbody")[0];
-    
-    
-//     bodies.push(nbody)
-//   })
+Array(270).fill().forEach((_, i)=>{  
+  const body = new Body({
+    ...Constants.NBODY,
+    name: `nbody-${i}-${Date.now()}`, // Unique name
+    radius: moon.radius / 5,
+    mass: moon.mass / 100,
+    position: [1.496e8 + Math.random() * 900000 + 15000, 0, Math.random() * 90000 + 1500],
+    velX: 0,
+    velY: 0,
+    velZ: 29.7222222 + 1,
+  });
+ //body.position.set(Math.random() * 300000 - 15000, 0, 0)
+bodies.push(body)
+})
 
   function gravityLogic(deltaTime, bodies){
     
@@ -186,7 +196,7 @@ const bodies = [...manualBodies]
         bodyB.velX -= normalizedX * accelerationBodyB * deltaTime
         bodyB.velY -= normalizedY * accelerationBodyB * deltaTime
         bodyB.velZ -= normalizedZ * accelerationBodyB * deltaTime
-        console.log(bodyA.position.x)
+        
         
         if(distance <= 10){
           bodyA.velX = 0
@@ -208,9 +218,9 @@ const bodies = [...manualBodies]
   }
 
   const trailDots = [];
-const trailGeometry = new THREE.SphereGeometry(2, 8, 8);
+const trailGeometry = new THREE.SphereGeometry(300, 8, 8);
 const trailMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const MAX_DOTS = 150 * bodies.length;
+const MAX_DOTS = 12 * bodies.length;
 
 function bodyTrail(bodies) {
   
@@ -222,7 +232,7 @@ function bodyTrail(bodies) {
     trailDots.push(dot);
     scene.add(dot);
     
-    // earth.attach(dot);
+    earth.attach(dot);
   }
 
   
@@ -230,7 +240,7 @@ function bodyTrail(bodies) {
     const oldDot = trailDots.shift(); 
     scene.remove(oldDot);
     
-    // earth.remove(oldDot);
+    earth.remove(oldDot);
   }
   bodies.forEach((body) => {
     body.frustumCulled = false;
@@ -240,7 +250,7 @@ function bodyTrail(bodies) {
 const trailLinesGroup = new THREE.Group();
 scene.add(trailLinesGroup);
 
-function trailLines(trailDots, manualBodies) {
+function trailLines(trailDots, bodies) {
   const material = new THREE.LineBasicMaterial({ color: 0xffffff });
 
   // Remove previous line objects from the group
@@ -248,7 +258,7 @@ function trailLines(trailDots, manualBodies) {
     trailLinesGroup.remove(trailLinesGroup.children[0]);
   }
   
-  for (const body of manualBodies) {
+  for (const body of bodies) {
     // Filter dots for the current body
     const bodyTrailDots = trailDots.filter(dot => dot.userData.bodyId === body.name);
     if (bodyTrailDots.length < 2) continue; // Need at least 2 dots to form a line
@@ -270,9 +280,6 @@ function trailLines(trailDots, manualBodies) {
     }
   }
 }
-
-let trailIndex = 0;
-let point2Position = 0;
 
 
 
@@ -296,14 +303,15 @@ let point2Position = 0;
     previousTime = currentTime;
 
   //planetWorkerService.update(deltaTime);
-
+  
   container.position.copy(container.getCurrentTarget().position);
 
   
   gravityLogic(deltaTime, bodies);
   bodyTrail(bodies);
-  trailLines(trailDots, manualBodies);
-
+  //trailLines(trailDots, bodies);
+ 
+  
   //earthClouds.position.copy(earth.position);
   camera.lookAt(container.position);
 

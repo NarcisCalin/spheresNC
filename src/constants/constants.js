@@ -23,6 +23,7 @@ export const NEPTUNE_SIZE = EARTH_SIZE * 3.86;
 
 export const EARTH_MASS = 5.9722e24;
 export const MOON_MASS = EARTH_MASS * 0.0123;
+export const SUN_MASS = 1.988416e30;
 
 
 export const MERCURY_SIDERAL_DAY = DAY * 58.6;
@@ -61,10 +62,10 @@ export const EARTH = {
   name: "earth",
   radius: EARTH_SIZE,
   mass: EARTH_MASS,
-  position: [0, 0, 0],
+  position: [EARTH_DISTANCE_TO_ORBITED, 0, 0],
   velX: 0,
   velY: 0,
-  velZ: 0,
+  velZ: 29.7222222,
   widthSegments: 32,
   heightSegments: 32,
   isPlanet: true,
@@ -84,10 +85,10 @@ export const MOON = {
   mass: MOON_MASS,
   widthSegments: 32,
   heightSegments: 32,
-  position: [0, 0, 384400],
+  position: [EARTH_DISTANCE_TO_ORBITED, 0, 384400],
   velX: 1.022 * KILOMETER / SECOND,
   velY: 0,
-  velZ: 0,
+  velZ: 29.7222222,
   isPlanet: true,
   canBeFocused: true,
 };
@@ -185,9 +186,27 @@ export const NEPTUNE = {
 export const SUN = {
   name: "sun",
   radius: SUN_SIZE,
+  mass: SUN_MASS,
+  position: [0, 0, 0],
+  velX: 0,
+  velY: 0,
+  velZ: 0,
+  widthSegments: 64,
+  heightSegments: 64,
+  isPlanet: false,
+  canBeFocused: true,
+};
+export const NBODY = {
+  name: "nbody",
+  radius: MOON_SIZE,
+  mass: MOON_MASS / 100,
   widthSegments: 32,
   heightSegments: 32,
-  isPlanet: false,
+  position: [0,0,0],
+  velX: 0,
+  velY: 0,
+  velZ: 0,
+  isPlanet: true,
   canBeFocused: true,
 };
 

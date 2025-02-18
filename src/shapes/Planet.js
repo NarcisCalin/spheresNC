@@ -29,31 +29,7 @@ export class Planet extends Body {
       canBeFocused,
     });
   }
-  getTranslateCounterClockWise() {
-    return this.translateCounterClockWise;
-  }
-  getRotateCounterClockWise() {
-    return this.rotateCounterClockWise;
-  }
   getSideralDay() {
     return this.sideralDay;
-  }
-  getDistanceToOrbited() {
-    return this.distanceToOrbited;
-  }
-
-  getOrbited() {
-    return this.orbited;
-  }
-  setOrbited(orbited) {
-    this.orbited = orbited;
-  }
-
-  getOrbitalPeriod() {
-    return this.orbitalPeriod;
-  }
-
-  setAngle(newAngle) {
-    this.angle = newAngle;
   }
 }

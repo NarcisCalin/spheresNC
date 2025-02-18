@@ -10,9 +10,7 @@ export class Body extends THREE.Mesh {
   
   rotateAngle = 0;
   canBeFocused = false;
-
   
-
   constructor({
     name,
     radius,

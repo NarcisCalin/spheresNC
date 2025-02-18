@@ -42,4 +42,5 @@ export const texturesRouteMap = {
   neptune: neptuneTexturesRoute,
   moon: moonTexturesRoute,
   earthClouds: earthCloudsTexturesRoute,
+  nbody: moonTexturesRoute,
 };

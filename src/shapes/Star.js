@@ -5,8 +5,14 @@ export class Star extends Body {
   constructor({
     name,
     radius,
+    mass = 0,
+    position,
+    velX = 0,
+    velY = 0,
+    velZ = 0,
     widthSegments,
     heightSegments,
+    sideralDay = 0,
     canBeFocused = false,
   }) {
     const geometry = new THREE.SphereGeometry(
@@ -21,7 +27,20 @@ export class Star extends Body {
     material.emissiveIntensity = 1;
     material.blendAlpha = 100;
 
-    super({ radius, name, canBeFocused, geometry, material });
+    super({geometry, 
+      material,
+      name,
+      radius,
+      mass,
+      position,
+      velX,
+      velY,
+      velZ,
+      widthSegments,
+      heightSegments,
+      sideralDay,
+      canBeFocused, });
+    
   }
 
   addStar(scene) {
